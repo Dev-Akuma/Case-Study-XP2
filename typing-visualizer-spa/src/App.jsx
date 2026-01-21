@@ -7,6 +7,7 @@ import TextDisplay from "./components/TextDisplay";
 import StatsBar from "./components/StatsBar";
 import TimerBar from "./components/TimerBar";
 import DurationSelector from "./components/DurationSelector";
+import EffectSelector from "./components/EffectSelector"; // <--- NEW IMPORT
 import ResultsPage from "./components/ResultsPage";
 import ThemeSettings from "./components/ThemeSettings";
 import EffectsCanvas from "./effects/EffectsCanvas";
@@ -14,7 +15,6 @@ import EffectsCanvas from "./effects/EffectsCanvas";
 // MUI
 import { Drawer, IconButton, Box, Typography, Divider } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
-import CloseIcon from "@mui/icons-material/Close"; // Optional: to swap icon
 
 /* ---------- INNER APP CONTENT ---------- */
 function AppContent() {
@@ -48,17 +48,14 @@ function AppContent() {
 
       {/* --- TOGGLE BUTTON --- */}
       <IconButton
-        onClick={() => setOpenSettings((prev) => !prev)} // 1. Toggle Logic
+        onClick={() => setOpenSettings((prev) => !prev)} 
         sx={{
           position: "fixed", 
           top: 16, 
-          // 2. Dynamic Position: If open, move it to (Drawer Width + 16px padding)
+          // Dynamic Position: Slides button when drawer opens
           left: openSettings ? `${DRAWER_WIDTH + 16}px` : "16px",
           
-          // 3. Smooth Transition (matches standard MUI Drawer speed)
           transition: "left 225ms cubic-bezier(0, 0, 0.2, 1) 0ms",
-          
-          // Ensure it sits ABOVE the drawer backdrop (which is usually around 1200-1300)
           zIndex: 1400, 
           
           backgroundColor: "rgba(255,255,255,0.06)",
@@ -66,7 +63,6 @@ function AppContent() {
           "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
         }}
       >
-        {/* Optional: Rotate the icon when open for a cool effect */}
         <SettingsIcon 
             sx={{ 
                 color: "#e5e7eb",
@@ -81,12 +77,10 @@ function AppContent() {
         anchor="left" 
         open={openSettings} 
         onClose={() => setOpenSettings(false)}
-        // Remove the backdrop so you can still see the game? 
-        // Or keep it (default). If keeping it, button needs high zIndex (set above).
       >
         <Box
           sx={{
-            width: DRAWER_WIDTH, // Match the constant
+            width: DRAWER_WIDTH, 
             height: "100%",
             bgcolor: "#020617",
             color: "#e5e7eb",
@@ -119,11 +113,15 @@ function AppContent() {
           <ResultsPage />
         ) : (
           <div className="container-fluid">
+            {/* Controls Section */}
             <div className="d-flex flex-column align-items-center mb-5" style={{gap: "1rem"}}>
               <DurationSelector />
+              {/* NEW: Effect Selector Added Here */}
+              <EffectSelector /> 
               <TimerBar />
             </div>
             
+            {/* Typing Area */}
             <div className="my-2">
               <TextDisplay />
             </div>

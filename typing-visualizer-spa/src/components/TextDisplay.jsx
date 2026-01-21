@@ -15,7 +15,6 @@ function generateText(count = 50) {
   ).join(" ");
 }
 
-// FIX: Ensure 'export default' is here
 export default function TextDisplay() {
   const { theme } = useTheme();
   
@@ -29,7 +28,7 @@ export default function TextDisplay() {
   const startedRef = useRef(false);
   const comboRef = useRef(0);
   
-  // Refs for scrolling logic
+  // Refs for scrolling logic and finding character position
   const containerRef = useRef(null);
   const activeCharRef = useRef(null);
 
@@ -75,44 +74,44 @@ export default function TextDisplay() {
         return;
       }
 
-const expected = text[index];
+      const expected = text[index];
 
-  if (e.key === expected) {
-    comboRef.current += 1;
-    setIndex((i) => i + 1);
-    recordInput(true);
-
-    // --- NEW LOGIC: Trigger Ripple on Word Complete ---
-    // Check if the typed character was a space (end of word)
-    if (expected === " ") {
-      
-      // 1. Find the caret element visually
-      // We use the activeCharRef because that's where the cursor currently IS.
-      const caretElement = activeCharRef.current;
-
-      if (caretElement) {
-        // 2. Get screen coordinates
-        const rect = caretElement.getBoundingClientRect();
+      // --- CORRECT KEY ---
+      if (e.key === expected) {
+        comboRef.current += 1;
         
-        // 3. Dispatch the event to EffectsCanvas
-        window.dispatchEvent(
-          new CustomEvent("typing:ripple", {
-            detail: {
-              // Center the ripple on the character
-              x: rect.left + rect.width / 2,
-              y: rect.top + rect.height / 2
-            }
-          })
-        );
-      }
-    }
-  }
-      // Incorrect Key
+        // 1. Capture the visual position of the character we just typed
+        // 'activeCharRef.current' points to the active character span
+        const charElement = activeCharRef.current;
+        
+        // 2. Dispatch generic Visual Event (Rocket/Fire/Ripple)
+        // We dispatch this on EVERY correct key so rockets/fire work on letters
+        if (charElement) {
+            const rect = charElement.getBoundingClientRect();
+            window.dispatchEvent(
+                new CustomEvent("typing:visual", {
+                    detail: {
+                        // Center of the character
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height / 2,
+                        key: e.key // Pass the key (so canvas knows if it's spacebar or letter)
+                    }
+                })
+            );
+        }
+
+        setIndex((i) => i + 1);
+        
+        // 3. Update Stats
+        recordInput(true);
+      } 
+      
+      // --- INCORRECT KEY ---
       else {
         comboRef.current = 0; 
         setErrors((prev) => ({ ...prev, [index]: true }));
         
-        // CRITICAL: Send data to Context
+        // Update Stats (Error)
         recordInput(false);
       }
     }
@@ -127,7 +126,7 @@ const expected = text[index];
   return (
     <div style={{ position: "relative", maxWidth: "1000px", margin: "0 auto" }}>
       
-      {/* Fade Masks */}
+      {/* Top/Bottom Fade Masks */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: "60px",
         background: `linear-gradient(to bottom, ${theme.background} 10%, transparent)`,
@@ -139,7 +138,7 @@ const expected = text[index];
         zIndex: 10, pointerEvents: "none"
       }} />
 
-      {/* Main Container */}
+      {/* Main Text Container */}
       <div
         ref={containerRef}
         style={{
@@ -175,7 +174,7 @@ const expected = text[index];
   );
 }
 
-// Sub-component (Needs no export, just local helper)
+// Sub-component for performance optimization
 const Word = ({ word, startIndex, currentIndex, errors, theme, activeCharRef }) => {
   const chars = word.split("");
   chars.push(" "); 

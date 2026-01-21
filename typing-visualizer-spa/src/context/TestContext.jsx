@@ -15,6 +15,9 @@ export function TestProvider({ children }) {
   const [timeLeft, setTimeLeft] = useState(15);
   const [isActive, setIsActive] = useState(false);
 
+  // New: Visual Effect State (ripple, rocket, fire, none)
+  const [visualEffect, setVisualEffect] = useState("ripple");
+
   // Stats
   const [totalTyped, setTotalTyped] = useState(0);
   const [totalErrors, setTotalErrors] = useState(0);
@@ -67,8 +70,6 @@ export function TestProvider({ children }) {
     if (graphTimerRef.current) clearInterval(graphTimerRef.current);
   };
 
-// ... inside TestProvider ...
-
   // FIX: Manually reset using 'newTime' to avoid stale state issues
   const updateDuration = (newTime) => {
     // 1. Stop the test immediately
@@ -78,7 +79,7 @@ export function TestProvider({ children }) {
 
     // 2. Update all states with the NEW time
     setDuration(newTime);
-    setTimeLeft(newTime); // <--- This forces the timer to 30s instantly
+    setTimeLeft(newTime); // Forces the timer update instantly
     
     // 3. Reset stats
     setStartTime(null);
@@ -87,8 +88,6 @@ export function TestProvider({ children }) {
     setTotalErrors(0);
     setHistory([]);
   };
-
-  // ... rest of the file ...
 
   // --- MAIN TIMER LOGIC ---
   useEffect(() => {
@@ -142,6 +141,8 @@ export function TestProvider({ children }) {
         totalErrors,
         history,
         startTime,
+        visualEffect,     // Exported
+        setVisualEffect,  // Exported
         startTest,
         resetTest,
         setDuration: updateDuration,
