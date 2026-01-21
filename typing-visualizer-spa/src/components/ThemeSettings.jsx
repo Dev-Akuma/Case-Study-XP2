@@ -1,8 +1,6 @@
 import { Stack, Typography, Box } from "@mui/material";
-// Correct import source
-import { HexColorPicker } from "react-colorful";
-
-// Assuming this context exists in your project
+// IMPORTANT: Make sure you installed this: npm install react-colorful
+import { HexColorPicker } from "react-colorful"; 
 import { useTheme } from "../context/ThemeContext";
 
 export default function ThemeSettings() {
@@ -45,23 +43,37 @@ function ColorControl({ label, value, onChange }) {
       <Typography
         variant="caption"
         sx={{
-          opacity: 0.65,
-          letterSpacing: "0.14em",
+          opacity: 0.7,
+          letterSpacing: "0.1em",
           mb: 1.5,
           display: "block",
           textTransform: "uppercase",
-          fontWeight: "bold"
+          fontWeight: 600,
+          fontSize: "0.75rem"
         }}
       >
         {label}
       </Typography>
 
-      {/* react-colorful is 100% width by default, 
-         wrapping it allows you to control the size if needed.
+      {/* Custom styling for the color picker to make it look cleaner.
+        You can remove the sx prop if you prefer the default look.
       */}
-      <Box sx={{ "& .react-colorful": { width: "100%" } }}>
+      <Box sx={{ "& .react-colorful": { width: "100%", height: "150px" } }}>
         <HexColorPicker color={value} onChange={onChange} />
       </Box>
+      
+      {/* Optional: Show Hex Code below picker */}
+      <Typography 
+        variant="caption" 
+        sx={{ 
+            display: 'block', 
+            mt: 1, 
+            opacity: 0.5, 
+            fontFamily: 'monospace' 
+        }}
+      >
+        {value}
+      </Typography>
     </Box>
   );
 }

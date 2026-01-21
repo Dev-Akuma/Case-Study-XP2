@@ -2,28 +2,35 @@ import { useState, useEffect } from "react";
 import { TestProvider, useTest } from "./context/TestContext";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
+// Components
 import TextDisplay from "./components/TextDisplay";
 import StatsBar from "./components/StatsBar";
 import TimerBar from "./components/TimerBar";
 import DurationSelector from "./components/DurationSelector";
-import EffectsCanvas from "./effects/EffectsCanvas";
-import ResultsPage from "./components/ResultsPage"; // Import new page
+import ResultsPage from "./components/ResultsPage";
 import ThemeSettings from "./components/ThemeSettings";
+import EffectsCanvas from "./effects/EffectsCanvas";
 
+// MUI
 import { Drawer, IconButton, Box, Typography, Divider } from "@mui/material";
 import SettingsIcon from "@mui/icons-material/Settings";
+import CloseIcon from "@mui/icons-material/Close"; // Optional: to swap icon
 
 /* ---------- INNER APP CONTENT ---------- */
 function AppContent() {
   const { theme } = useTheme();
-  const { timeLeft } = useTest(); // We only need to check time here
+  const { timeLeft } = useTest(); 
   const [openSettings, setOpenSettings] = useState(false);
 
   // Sync Body Background
   useEffect(() => {
     document.body.style.backgroundColor = theme.background;
     document.body.style.transition = "background-color 0.25s ease";
-  }, [theme.background]);
+    document.body.style.color = theme.textTyped;
+  }, [theme.background, theme.textTyped]);
+
+  // Drawer width constant (used for calculating button position)
+  const DRAWER_WIDTH = 320;
 
   return (
     <div
@@ -34,39 +41,80 @@ function AppContent() {
         overflowX: "hidden"
       }}
     >
-      {/* 1. BACKGROUND EFFECTS */}
+      {/* BACKGROUND EFFECTS */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
         <EffectsCanvas />
       </div>
 
-      {/* 2. SETTINGS BUTTON */}
+      {/* --- TOGGLE BUTTON --- */}
       <IconButton
-        onClick={() => setOpenSettings(true)}
+        onClick={() => setOpenSettings((prev) => !prev)} // 1. Toggle Logic
         sx={{
-          position: "fixed", top: 16, left: 16, zIndex: 1300,
+          position: "fixed", 
+          top: 16, 
+          // 2. Dynamic Position: If open, move it to (Drawer Width + 16px padding)
+          left: openSettings ? `${DRAWER_WIDTH + 16}px` : "16px",
+          
+          // 3. Smooth Transition (matches standard MUI Drawer speed)
+          transition: "left 225ms cubic-bezier(0, 0, 0.2, 1) 0ms",
+          
+          // Ensure it sits ABOVE the drawer backdrop (which is usually around 1200-1300)
+          zIndex: 1400, 
+          
           backgroundColor: "rgba(255,255,255,0.06)",
           border: "1px solid rgba(255,255,255,0.12)",
           "&:hover": { backgroundColor: "rgba(255,255,255,0.1)" },
         }}
       >
-        <SettingsIcon sx={{ color: "#e5e7eb" }} />
+        {/* Optional: Rotate the icon when open for a cool effect */}
+        <SettingsIcon 
+            sx={{ 
+                color: "#e5e7eb",
+                transition: "transform 0.3s ease",
+                transform: openSettings ? "rotate(90deg)" : "rotate(0deg)"
+            }} 
+        />
       </IconButton>
 
-      {/* 3. SETTINGS DRAWER */}
-      <Drawer anchor="left" open={openSettings} onClose={() => setOpenSettings(false)}>
-        <Box sx={{ width: 320, height: "100%", bgcolor: "#020617", color: "#e5e7eb", p: 3 }}>
-          <Typography variant="overline" sx={{ opacity: 0.7, letterSpacing: "0.2em" }}>
+      {/* --- SETTINGS DRAWER --- */}
+      <Drawer 
+        anchor="left" 
+        open={openSettings} 
+        onClose={() => setOpenSettings(false)}
+        // Remove the backdrop so you can still see the game? 
+        // Or keep it (default). If keeping it, button needs high zIndex (set above).
+      >
+        <Box
+          sx={{
+            width: DRAWER_WIDTH, // Match the constant
+            height: "100%",
+            bgcolor: "#020617",
+            color: "#e5e7eb",
+            p: 3,
+            overflowY: "auto", 
+            "&::-webkit-scrollbar": { width: "6px" },
+            "&::-webkit-scrollbar-track": { background: "rgba(0,0,0,0.1)" },
+            "&::-webkit-scrollbar-thumb": { background: "rgba(255,255,255,0.2)", borderRadius: "3px" }
+          }}
+        >
+          <Typography
+            variant="overline"
+            sx={{ opacity: 0.7, letterSpacing: "0.2em", fontWeight: "bold" }}
+          >
             Customization
           </Typography>
+
           <Divider sx={{ my: 2, borderColor: "rgba(255,255,255,0.1)" }} />
+
           <ThemeSettings />
+
+          <Box sx={{ height: "40px" }} />
         </Box>
       </Drawer>
 
-      {/* 4. MAIN CONTENT SWITCHER */}
+      {/* --- MAIN CONTENT --- */}
       <div style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         
-        {/* LOGIC: IF Time is 0, Show Results. ELSE Show Test */}
         {timeLeft === 0 ? (
           <ResultsPage />
         ) : (
@@ -89,7 +137,6 @@ function AppContent() {
   );
 }
 
-/* ---------- PROVIDER WRAPPER ---------- */
 export default function App() {
   return (
     <ThemeProvider>

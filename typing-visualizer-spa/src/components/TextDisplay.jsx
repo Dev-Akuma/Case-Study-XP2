@@ -75,16 +75,38 @@ export default function TextDisplay() {
         return;
       }
 
-      const expected = text[index];
+const expected = text[index];
 
-      // Correct Key
-      if (e.key === expected) {
-        comboRef.current += 1;
-        setIndex((i) => i + 1);
+  if (e.key === expected) {
+    comboRef.current += 1;
+    setIndex((i) => i + 1);
+    recordInput(true);
 
-        // CRITICAL: Send data to Context
-        recordInput(true);
-      } 
+    // --- NEW LOGIC: Trigger Ripple on Word Complete ---
+    // Check if the typed character was a space (end of word)
+    if (expected === " ") {
+      
+      // 1. Find the caret element visually
+      // We use the activeCharRef because that's where the cursor currently IS.
+      const caretElement = activeCharRef.current;
+
+      if (caretElement) {
+        // 2. Get screen coordinates
+        const rect = caretElement.getBoundingClientRect();
+        
+        // 3. Dispatch the event to EffectsCanvas
+        window.dispatchEvent(
+          new CustomEvent("typing:ripple", {
+            detail: {
+              // Center the ripple on the character
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2
+            }
+          })
+        );
+      }
+    }
+  }
       // Incorrect Key
       else {
         comboRef.current = 0; 
