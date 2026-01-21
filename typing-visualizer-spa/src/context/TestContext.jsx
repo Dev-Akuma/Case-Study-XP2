@@ -67,11 +67,28 @@ export function TestProvider({ children }) {
     if (graphTimerRef.current) clearInterval(graphTimerRef.current);
   };
 
+// ... inside TestProvider ...
+
+  // FIX: Manually reset using 'newTime' to avoid stale state issues
   const updateDuration = (newTime) => {
+    // 1. Stop the test immediately
+    setIsActive(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (graphTimerRef.current) clearInterval(graphTimerRef.current);
+
+    // 2. Update all states with the NEW time
     setDuration(newTime);
-    setTimeLeft(newTime);
-    resetTest();
+    setTimeLeft(newTime); // <--- This forces the timer to 30s instantly
+    
+    // 3. Reset stats
+    setStartTime(null);
+    setEndTime(null);
+    setTotalTyped(0);
+    setTotalErrors(0);
+    setHistory([]);
   };
+
+  // ... rest of the file ...
 
   // --- MAIN TIMER LOGIC ---
   useEffect(() => {
