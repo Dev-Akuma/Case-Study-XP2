@@ -1,112 +1,111 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect } from "react";
+import { Box, Stack, Typography } from "@mui/material";
 import { useTest } from "../context/TestContext";
+import { useTheme } from "../context/ThemeContext";
 
 export default function StatsBar() {
-  const { timeLeft } = useTest();
+  const { theme } = useTheme();
+  const { totalTyped, totalErrors, isActive, startTime } = useTest();
+  
+  // Local state for smooth WPM animation
+  const [liveWpm, setLiveWpm] = useState(0);
 
-  const [wpm, setWpm] = useState(0);
-  const [accuracy, setAccuracy] = useState(100);
-  const [errors, setErrors] = useState(0);
-
-  const startTime = useRef(null);
-  const correct = useRef(0);
-  const total = useRef(0);
-
-  // --- stats listener ---
   useEffect(() => {
-    function onStat(e) {
-      const { correct: isCorrect } = e.detail;
+    let interval;
+    if (isActive && startTime) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        // Calculate exact time elapsed in minutes (e.g. 0.05 minutes)
+        const elapsedMin = (now - startTime) / 60000;
+        
+        // Prevent division by zero or tiny numbers at start
+        if (elapsedMin < 0.01) {
+            setLiveWpm(0);
+            return;
+        }
 
-      if (!startTime.current) startTime.current = Date.now();
+        // --- NET WPM FORMULA ---
+        // ( (TotalChars / 5) - Errors ) / Minutes
+        // This penalizes errors so accuracy matters.
+        const grossWPM = (totalTyped / 5) / elapsedMin;
+        const netWPM = Math.max(0, grossWPM - (totalErrors / elapsedMin));
+        
+        setLiveWpm(Math.round(netWPM));
 
-      total.current++;
-
-      if (isCorrect) {
-        correct.current++;
-      } else {
-        setErrors((v) => v + 1);
-      }
-
-      const minutes = (Date.now() - startTime.current) / 60000;
-      if (minutes > 0) {
-        setWpm(Math.round((correct.current / 5) / minutes));
-      }
-
-      setAccuracy(
-        Math.round((correct.current / Math.max(total.current, 1)) * 100)
-      );
+      }, 200); // Update 5 times a second for smoothness
+    } else if (!isActive && !startTime) {
+        setLiveWpm(0);
     }
+    return () => clearInterval(interval);
+  }, [isActive, startTime, totalTyped, totalErrors]);
 
-    window.addEventListener("typing:stat", onStat);
-    return () => window.removeEventListener("typing:stat", onStat);
-  }, []);
-
-  // --- reset on test end ---
-  useEffect(() => {
-    if (timeLeft === 0) {
-      startTime.current = null;
-      correct.current = 0;
-      total.current = 0;
-      setWpm(0);
-      setAccuracy(100);
-      setErrors(0);
-    }
-  }, [timeLeft]);
+  const accuracy = totalTyped > 0 
+    ? Math.round(((totalTyped - totalErrors) / totalTyped) * 100) 
+    : 100;
 
   return (
-    <div
-      className="d-flex justify-content-center"
-      style={{
-        marginTop: "2.4rem",
-        gap: "4.2rem",
-
-        fontFamily: "JetBrains Mono, monospace",
-        opacity: 0.7,
-
-        position: "relative",
-        zIndex: 2,
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        width: "100%",
+        mt: 4,
+        opacity: isActive ? 1 : 0.5,
+        transition: "opacity 0.2s"
       }}
     >
-      <Stat label="wpm" value={wpm} />
-      <Stat label="accuracy" value={`${accuracy}%`} />
-      <Stat label="errors" value={errors} />
-    </div>
+      <Stack direction="row" spacing={8}>
+        
+        <StatItem 
+          label="WPM" 
+          value={liveWpm} 
+          theme={theme} 
+        />
+
+        <StatItem 
+          label="Accuracy" 
+          value={accuracy + "%"} 
+          theme={theme} 
+        />
+
+        <StatItem 
+          label="Errors" 
+          value={totalErrors} 
+          theme={theme} 
+          isError={totalErrors > 0} 
+        />
+
+      </Stack>
+    </Box>
   );
 }
 
-function Stat({ label, value }) {
+function StatItem({ label, value, theme, isError }) {
   return (
-    <div
-      style={{
-        textAlign: "center",
-        minWidth: "72px",
-      }}
-    >
-      {/* VALUE */}
-      <div
-        style={{
-          fontSize: "1.45rem",
-          fontWeight: 500,
-          color: "#f1f5f9",
-          lineHeight: 1.1,
-          transition: "color 0.2s ease",
+    <Box sx={{ textAlign: "center" }}>
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: "bold",
+          color: isError ? "#ef4444" : theme.caret, // Explicit red for errors
+          lineHeight: 1,
+          mb: 0.5
         }}
       >
         {value}
-      </div>
-
-      {/* LABEL */}
-      <div
-        style={{
-          marginTop: "0.35rem",
-          fontSize: "0.7rem",
-          letterSpacing: "0.14em",
+      </Typography>
+      <Typography
+        variant="caption"
+        sx={{
+          color: theme.textTyped,
           textTransform: "uppercase",
-          color: "#94a3b8",
+          letterSpacing: "0.1em",
+          fontSize: "0.75rem",
+          opacity: 0.6
         }}
       >
         {label}
-      </div>
-    </div>
+      </Typography>
+    </Box>
   );
 }

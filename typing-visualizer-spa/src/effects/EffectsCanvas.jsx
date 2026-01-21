@@ -1,111 +1,63 @@
-import { useEffect, useRef } from "react";
+import { useRef, useEffect } from "react";
+import { useTheme } from "../context/ThemeContext";
 
 export default function EffectsCanvas() {
   const canvasRef = useRef(null);
+  const { theme } = useTheme(); // You can use this to color particles if you want
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
+    let animationFrameId;
 
-    let w, h;
-    let ripples = [];
-    let last = performance.now();
-
-    function resize() {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
-    }
-    resize();
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
     window.addEventListener("resize", resize);
+    resize();
 
-    function spawnBurst(intensity, combo, clean) {
-      const count = Math.min(28, 4 + combo * 2);
-      const color = clean ? "180,200,255" : "239,68,68";
-
-      for (let i = 0; i < count; i++) {
-        ripples.push({
-          x: Math.random() * w,
-          y: Math.random() * h,
-          r: Math.random() * 8,
-          speed: 18 + Math.random() * 30,
-          alpha: 0.45,
-          decay: 0.18 + Math.random() * 0.25,
-          delay: Math.random() * 220,
-          born: performance.now(),
-          color,
+    // --- PARTICLE LOGIC (Simplified) ---
+    const particles = [];
+    for(let i=0; i<50; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            size: Math.random() * 2
         });
-      }
     }
 
-    function onWord(e) {
-      const { cps, combo, clean } = e.detail;
-      spawnBurst(cps, combo, clean);
-    }
+    const animate = () => {
+      // FIX 1: CLEAR RECT instead of filling black
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    window.addEventListener("typing:word", onWord);
+      // Draw Particles
+      ctx.fillStyle = "rgba(255, 255, 255, 0.05)"; // Very subtle dust
+      particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          if(p.x < 0) p.x = canvas.width;
+          if(p.x > canvas.width) p.x = 0;
+          if(p.y < 0) p.y = canvas.height;
+          if(p.y > canvas.height) p.y = 0;
 
-    function update(dt) {
-      ripples.forEach(r => {
-        const age = performance.now() - r.born;
-        if (age < r.delay) return;
-
-        r.r += r.speed * dt;
-        r.alpha -= r.decay * dt;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
       });
 
-      ripples = ripples.filter(r => r.alpha > 0);
-    }
+      animationFrameId = requestAnimationFrame(animate);
+    };
 
-    function draw() {
-      ctx.fillStyle = "#020617";
-      ctx.fillRect(0, 0, w, h);
-
-      ripples.forEach(r => {
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${r.color}, ${r.alpha})`;
-        ctx.lineWidth = 1.6;
-        ctx.stroke();
-      });
-    }
-
-    function loop(now) {
-      const dt = Math.min(0.033, (now - last) / 1000);
-      last = now;
-
-      update(dt);
-      draw();
-      requestAnimationFrame(loop);
-    }
-
-    requestAnimationFrame(loop);
+    animate();
 
     return () => {
-      window.removeEventListener("typing:word", onWord);
       window.removeEventListener("resize", resize);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
-  return (
-    <>
-      <canvas
-        ref={canvasRef}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(2,6,23,0.6)",
-          zIndex: 1,
-          pointerEvents: "none",
-        }}
-      />
-    </>
-  );
+  return <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />;
 }
